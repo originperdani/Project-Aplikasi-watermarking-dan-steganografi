@@ -1,8 +1,11 @@
 import os
+import io
+import base64
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
 from werkzeug.utils import secure_filename
-from utils.steg import embed_text_lsb, extract_text_lsb, analyze_text
-from utils.watermark import add_text_watermark, add_image_watermark
+from utils.steg import embed_text_lsb, extract_text_lsb, analyze_text, embed_text_lsb_image, extract_text_lsb_image
+from utils.watermark import add_text_watermark, add_image_watermark, add_text_watermark_image, add_image_watermark_image
+from PIL import Image
 
 app = Flask(__name__)
 app.secret_key = "dev-secret"
@@ -40,34 +43,39 @@ def watermark():
         if not allowed_file(file.filename):
             flash("Format gambar tidak didukung")
             return redirect(url_for("watermark"))
-        filename = secure_filename(file.filename)
-        src_path = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(src_path)
+        try:
+            src_img = Image.open(file.stream)
+        except Exception:
+            flash("Gagal membaca gambar")
+            return redirect(url_for("watermark"))
 
         mode = request.form.get("mode", "text")
         position = request.form.get("position", "bottom_right")
         margin = int(request.form.get("margin", 16))
         opacity = float(request.form.get("opacity", 0.6))
-        output_name = f"wm_{filename}"
-        dst_path = os.path.join(OUTPUT_FOLDER, output_name)
-
         if mode == "text":
             text = request.form.get("text", "")
             font_size = int(request.form.get("font_size", 32))
             color = request.form.get("color", "#ffffff")
-            add_text_watermark(src_path, text, dst_path, position=position, font_size=font_size, color=color, opacity=opacity, margin=margin)
+            out_img = add_text_watermark_image(src_img, text, position=position, font_size=font_size, color=color, opacity=opacity, margin=margin)
         else:
             wm_file = request.files.get("wm_image")
             if not wm_file or wm_file.filename == "":
                 flash("Pilih gambar watermark")
                 return redirect(url_for("watermark"))
-            wm_name = secure_filename(wm_file.filename)
-            wm_path = os.path.join(UPLOAD_FOLDER, wm_name)
-            wm_file.save(wm_path)
+            try:
+                wm_img = Image.open(wm_file.stream)
+            except Exception:
+                flash("Gagal membaca gambar watermark")
+                return redirect(url_for("watermark"))
             scale = float(request.form.get("scale", 0.25))
-            add_image_watermark(src_path, wm_path, dst_path, position=position, scale=scale, opacity=opacity, margin=margin)
+            out_img = add_image_watermark_image(src_img, wm_img, position=position, scale=scale, opacity=opacity, margin=margin)
 
-        return render_template("watermark.html", result=url_for("outputs", filename=output_name))
+        buf = io.BytesIO()
+        out_img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        data_url = "data:image/png;base64," + b64
+        return render_template("watermark.html", result=data_url)
 
     return render_template("watermark.html")
 
@@ -85,18 +93,17 @@ def steg():
             if not allowed_file(file.filename):
                 flash("Format gambar tidak didukung")
                 return redirect(url_for("steg", action="embed"))
-            filename = secure_filename(file.filename)
-            src_path = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(src_path)
-            stem = os.path.splitext(filename)[0]
-            output_name = f"steg_{stem}.png"
-            dst_path = os.path.join(OUTPUT_FOLDER, output_name)
             try:
-                embed_text_lsb(src_path, message, dst_path)
+                src_img = Image.open(file.stream)
+                out_img = embed_text_lsb_image(src_img, message)
             except Exception as e:
                 flash(str(e))
                 return redirect(url_for("steg", action="embed"))
-            return render_template("steg.html", action="embed", result=url_for("outputs", filename=output_name), success=True)
+            buf = io.BytesIO()
+            out_img.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            data_url = "data:image/png;base64," + b64
+            return render_template("steg.html", action="embed", result=data_url, success=True)
         else:
             file = request.files.get("image")
             if not file or file.filename == "":
@@ -105,11 +112,9 @@ def steg():
             if not allowed_file(file.filename):
                 flash("Format gambar tidak didukung")
                 return redirect(url_for("steg", action="extract"))
-            filename = secure_filename(file.filename)
-            src_path = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(src_path)
             try:
-                text = extract_text_lsb(src_path)
+                src_img = Image.open(file.stream)
+                text = extract_text_lsb_image(src_img)
             except Exception as e:
                 flash(str(e))
                 return redirect(url_for("steg", action="extract"))
