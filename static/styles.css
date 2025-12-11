@@ -180,6 +180,19 @@ button,
   color: var(--muted);
   font-size: 12px;
 }
+.panel pre {
+  background: #0b1220;
+  border: 1px solid #223046;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+}
 .table-wrap {
   overflow-y: auto;
   overflow-x: auto;
