@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Steganografi</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Steganografi LSB</h1>
+      <div class="tabs">
+        <a
+          class="tab {{ 'active' if action=='embed' else '' }}"
+          href="{{ url_for('steg', action='embed') }}"
+          >Sembunyikan</a
+        >
+        <a
+          class="tab {{ 'active' if action=='extract' else '' }}"
+          href="{{ url_for('steg', action='extract') }}"
+          >Ekstrak</a
+        >
+      </div>
+      {% with messages = get_flashed_messages() %} {% if messages %}
+      <div class="flash">{{ messages[0] }}</div>
+      {% endif %} {% endwith %} {% if action == 'embed' %}
+      <div class="grid-2">
+        <form method="post" enctype="multipart/form-data" class="form panel">
+          <input type="hidden" name="action" value="embed" />
+          <h3>Unggah Gambar</h3>
+          <label>Pilih Gambar (PNG, BMP, JPG)</label>
+          <input
+            id="embed-image"
+            type="file"
+            name="image"
+            accept="image/*"
+            required
+          />
+          <div class="muted" id="capacity-note">Maksimum - karakter</div>
+          <label>Pesan</label>
+          <textarea
+            name="message"
+            rows="4"
+            placeholder="Tulis pesan rahasia"
+            required
+          ></textarea>
+          <button type="submit">Sembunyikan</button>
+        </form>
+        <div class="panel">
+          <h3>Preview Hasil</h3>
+          {% if success and result %}
+          <div class="alert success">
+            Pesan berhasil disisipkan!
+            <a class="btn" href="{{ result }}" download>Download Gambar</a>
+          </div>
+          {% endif %} {% if result %}
+          <div class="result"><img src="{{ result }}" alt="output" /></div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="grid-2">
+        <form method="post" enctype="multipart/form-data" class="form panel">
+          <input type="hidden" name="action" value="extract" />
+          <h3>Unggah Gambar Stego</h3>
+          <label>Pilih Gambar Stego (PNG, BMP, JPG)</label>
+          <input type="file" name="image" accept="image/*" required />
+          <button type="submit">Ekstrak</button>
+        </form>
+        <div class="panel">
+          <h3>Pesan Terekstrak</h3>
+          {% if success %}
+          <div class="alert success">Pesan berhasil diekstrak!</div>
+          {% endif %} {% if extracted is not none %}
+          <div class="tabs">
+            <a
+              id="tab-text"
+              class="tab active"
+              href="#"
+              onclick="showView('text');return false;"
+              >Teks</a
+            >
+            <a
+              id="tab-hex"
+              class="tab"
+              href="#"
+              onclick="showView('hex');return false;"
+              >Hex View</a
+            >
+            <a
+              id="tab-raw"
+              class="tab"
+              href="#"
+              onclick="showView('raw');return false;"
+              >Raw View</a
+            >
+          </div>
+          <div id="view-text">
+            <label>Isi Pesan:</label>
+            <textarea rows="5" readonly>{{ extracted }}</textarea>
+            <div class="muted">
+              Panjang pesan: {{ char_len }} karakter | Raw bytes: {{ byte_len }}
+              bytes
+            </div>
+          </div>
+          <pre id="view-hex" style="display: none">{{ hex_view }}</pre>
+          <div id="view-raw" style="display: none">
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Index</th>
+                    <th>Decimal</th>
+                    <th>Hex</th>
+                    <th>Binary</th>
+                    <th>Char</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in rows %}
+                  <tr>
+                    <td>{{ r.index }}</td>
+                    <td>{{ r.dec }}</td>
+                    <td>{{ r.hex }}</td>
+                    <td>{{ r.bin }}</td>
+                    <td>{{ r.char }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <script>
+      function showView(v) {
+        const vt = document.getElementById("view-text");
+        const vh = document.getElementById("view-hex");
+        const vr = document.getElementById("view-raw");
+        if (!vt || !vh || !vr) return;
+        vt.style.display = v === "text" ? "block" : "none";
+        vh.style.display = v === "hex" ? "block" : "none";
+        vr.style.display = v === "raw" ? "block" : "none";
+        ["tab-text", "tab-hex", "tab-raw"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.classList.remove("active");
+        });
+        const map = { text: "tab-text", hex: "tab-hex", raw: "tab-raw" };
+        const active = document.getElementById(map[v]);
+        if (active) active.classList.add("active");
+      }
+      showView("text");
+      const fileInput = document.getElementById("embed-image");
+      const note = document.getElementById("capacity-note");
+      if (fileInput) {
+        fileInput.addEventListener("change", () => {
+          const f = fileInput.files[0];
+          if (!f) {
+            note.textContent = "Maksimum - karakter";
+            return;
+          }
+          const url = URL.createObjectURL(f);
+          const img = new Image();
+          img.onload = () => {
+            const w = img.width,
+              h = img.height;
+            const bits = w * h * 3 - 32;
+            const maxChars = Math.max(0, Math.floor(bits / 8));
+            note.textContent = "Maksimum " + maxChars + " karakter";
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mini Aplikasi Pengolahan Citra Digital</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="hero">
+        <div class="brand">Mini Aplikasi Pengolahan Citra Digital</div>
+        <div class="subtitle">Steganografi dan Watermarking</div>
+      </div>
+      <p class="muted">Pilih fitur:</p>
+      <div class="card-grid">
+        <a class="card" href="{{ url_for('watermark') }}">
+          <div class="card-header">
+            <h3>Watermark</h3>
+          </div>
+          <p>Tambahkan teks atau gambar watermark dengan posisi fleksibel.</p>
+        </a>
+        <a class="card" href="{{ url_for('steg') }}">
+          <div class="card-header">
+            <h3>Steganografi</h3>
+          </div>
+          <p>Sembunyikan dan ekstrak pesan dalam gambar via LSB.</p>
+        </a>
+      </div>
+      <div class="info-grid">
+        <div class="info">
+          <h4>Watermark</h4>
+          <p>
+            Menambah tanda terlihat pada gambar (teks atau logo) untuk
+            identitas/kredit. Posisi, margin, skala, dan opacity dapat diatur.
+            Tujuan: melindungi hak cipta dan branding.
+          </p>
+        </div>
+        <div class="info">
+          <h4>Steganografi</h4>
+          <p>
+            Menyembunyikan pesan rahasia di dalam piksel gambar menggunakan LSB.
+            Pesan tidak terlihat, dapat diekstrak kembali. Disarankan memakai
+            PNG/BMP agar bit tidak rusak oleh kompresi.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

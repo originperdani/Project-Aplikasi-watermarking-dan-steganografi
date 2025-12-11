@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Watermark</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Watermark</h1>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash">{{ messages[0] }}</div>
+        {% endif %}
+      {% endwith %}
+      <form method="post" enctype="multipart/form-data" class="form">
+        <label>Gambar</label>
+        <input type="file" name="image" accept="image/*" required>
+
+        <label>Mode</label>
+        <select name="mode" id="wm-mode">
+          <option value="text">Teks</option>
+          <option value="image">Gambar</option>
+        </select>
+
+        <div id="text-fields">
+          <label>Teks</label>
+          <input type="text" name="text" placeholder="Tulis watermark" value="Hak Cipta" required>
+          <div class="row">
+            <div>
+              <label>Ukuran Font</label>
+              <input type="number" name="font_size" min="10" max="200" value="32">
+            </div>
+            <div>
+              <label>Warna</label>
+              <input type="color" name="color" value="#ffffff">
+            </div>
+          </div>
+        </div>
+
+        <div id="image-fields" style="display:none">
+          <label>Gambar Watermark</label>
+          <input type="file" name="wm_image" accept="image/*">
+          <label>Skala</label>
+          <input type="range" name="scale" min="0.1" max="0.9" step="0.05" value="0.25">
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Posisi</label>
+            <select name="position">
+              <option value="bottom_right">Bawah Kanan</option>
+              <option value="bottom_left">Bawah Kiri</option>
+              <option value="top_right">Atas Kanan</option>
+              <option value="top_left">Atas Kiri</option>
+              <option value="center">Tengah</option>
+            </select>
+          </div>
+          <div>
+            <label>Margin</label>
+            <input type="number" name="margin" min="0" max="200" value="16">
+          </div>
+          <div>
+            <label>Opacity</label>
+            <input type="range" name="opacity" min="0" max="1" step="0.05" value="0.6">
+          </div>
+        </div>
+
+        <button type="submit">Proses</button>
+      </form>
+
+      {% if result %}
+      <div class="result">
+        <img src="{{ result }}" alt="hasil"/>
+        <div class="actions">
+          <a class="btn" href="{{ result }}" download>Unduh</a>
+          <a class="btn" href="{{ url_for('index') }}">Kembali</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <script>
+      const mode = document.getElementById('wm-mode');
+      const tf = document.getElementById('text-fields');
+      const imf = document.getElementById('image-fields');
+      function update(){
+        const v = mode.value;
+        tf.style.display = v === 'text' ? 'block' : 'none';
+        imf.style.display = v === 'image' ? 'block' : 'none';
+      }
+      mode.addEventListener('change', update);
+      update();
+    </script>
+  </body>
+</html>
+
